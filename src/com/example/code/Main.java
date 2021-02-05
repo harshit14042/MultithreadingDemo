@@ -1,5 +1,10 @@
 package com.example.code;
 import java.lang.Thread;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+
+import static java.lang.Thread.yield;
+
 class Container{
     public int[] box;
     public int count;
@@ -16,9 +21,9 @@ class Container{
                     wait();
                 }
                 int number = (int) (Math.random()*100);
-                System.out.printf("Produced %d\n", number);
+                System.out.printf("%s Produced %d\n",Thread.currentThread().getName(), number);
                 this.box[this.count++] = number;
-                notify();
+                notifyAll();
                 Thread.sleep(500);
             }
         }
@@ -29,9 +34,14 @@ class Container{
                 while(this.count==0) {
                     wait();
                 }
-                System.out.printf("Consumer %d\n", this.box[--this.count]);
-                notify();
-                Thread.sleep(500);
+                System.out.printf("%s Consumer %d\n",Thread.currentThread().getName(), this.box[--this.count]);
+                notifyAll();
+                if(this.box[this.count]>90){
+                    Thread.currentThread().stop();
+                }
+                else {
+                    Thread.sleep(500);
+                }
             }
         }
     }
@@ -94,36 +104,55 @@ class ThreadConsumerRunnable implements Runnable{
 public class Main {
     public static void main(String args[]) throws InterruptedException {
         Container c=new Container(5);
-//        Thread t1=new Thread(() -> {
-//            try {
-//                c.produce();
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        });
-//        Thread t2=new Thread(()->{
-//            try {
-//                c.consume();
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        });
-//        t1.start();
-//        t2.start();
-//        t1.join();
-//        t2.join();
 
-//        ThreadProducer p=new ThreadProducer(c);
-//        ThreadConsumer co=new ThreadConsumer(c);
-//        p.start();
-//        co.start();
-//        p.join();
-//        co.join();
-        Thread t1=new Thread(new ThreadProducerRunnable(c));
-        Thread t2=new Thread(new ThreadConsumerRunnable(c));
+        // Execute One at a time
+
+        //Using functional interface Runnable
+        Thread t1=new Thread(() -> {
+            try {
+                c.produce();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        Thread t2=new Thread(()->{
+            try {
+                c.consume();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
         t1.start();
         t2.start();
         t1.join();
         t2.join();
+
+        // Using Thread class
+        ThreadProducer p=new ThreadProducer(c);
+        ThreadConsumer co=new ThreadConsumer(c);
+        p.start();
+        co.start();
+        p.join();
+        co.join();
+
+        // Using Runnable
+        Thread t11=new Thread(new ThreadProducerRunnable(c));
+        Thread t21=new Thread(new ThreadConsumerRunnable(c));
+        t11.start();
+        t21.start();
+        t11.join();
+        t21.join();
+
+        //Using threadpools
+        Runnable p1=new ThreadProducerRunnable(c);
+        Runnable p2=new ThreadProducerRunnable(c);
+        Runnable c1=new ThreadConsumerRunnable(c);
+        Runnable c2=new ThreadConsumerRunnable(c);
+        ExecutorService pool=Executors.newFixedThreadPool(3);
+        pool.execute(p1);
+        pool.execute(p2);
+        pool.execute(c1);
+        pool.execute(c2);
+        pool.shutdown();
     }
 }
