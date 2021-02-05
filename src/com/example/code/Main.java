@@ -1,5 +1,6 @@
 package com.example.code;
 import java.lang.Thread;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 
@@ -148,7 +149,10 @@ public class Main {
         Runnable p2=new ThreadProducerRunnable(c);
         Runnable c1=new ThreadConsumerRunnable(c);
         Runnable c2=new ThreadConsumerRunnable(c);
+
         ExecutorService pool=Executors.newFixedThreadPool(3);
+        ExecutorService pool1=Executors.newCachedThreadPool();
+        ExecutorService pool2=Executors.newSingleThreadExecutor();
         pool.execute(p1);
         pool.execute(p2);
         pool.execute(c1);
